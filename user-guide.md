@@ -310,35 +310,7 @@ Keep this terminal open while using PUDA.
 
 > **Important:** Run only one Edge service for the same robot at a time. Duplicate processes cause confusing command errors.
 
-### 3.2 Start the Opentrons Edge service with Docker
-
-The repository also includes a Docker setup adapted from `PUDAP/edge-python-template`.
-
-From the main `opentrons` folder, create the configuration file if it does not exist:
-
-```powershell
-copy edge\.env.example edge\.env
-```
-
-Edit `edge/.env`, then build and start the container:
-
-```powershell
-docker compose --env-file edge/.env -f compose.yml up -d --build
-```
-
-View logs:
-
-```powershell
-docker compose --env-file edge/.env -f compose.yml logs -f edge
-```
-
-Stop the container:
-
-```powershell
-docker compose --env-file edge/.env -f compose.yml down
-```
-
-### 3.3 Start livestream cameras
+### 3.2 Start livestream cameras
 
 The livestream stack uses MediaMTX and ffmpeg to stream two Linux V4L2 cameras.
 This is intended for a Linux Docker host with `/dev/video*` devices.
