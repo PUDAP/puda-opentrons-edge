@@ -10,7 +10,7 @@ Communicates directly with the OT-2 REST API over HTTP — no Opentrons App, no 
 - **Run management** — play, pause, stop, and monitor protocol runs
 - **Protocol builder** — construct OT-2 protocols programmatically using Pydantic models
 - **Labware management** — upload custom labware definitions; built-ins auto-discovered from `labware/`
-- **Camera support** — capture images and record video via USB camera (optional)
+- **Integrated camera capture** — capture JPEG images from the OT-2 robot camera through the robot API
 - **Cross-platform** — works on Windows, macOS, and Linux
 
 ## Installation
@@ -64,7 +64,6 @@ uv add --package opentrons-driver some-package
 | Device | Description |
 |---|---|
 | **OT-2** | Opentrons OT-2 liquid-handling robot (HTTP REST API) |
-| **Camera** | USB and V4L2-compatible cameras for image and video capture |
 
 ## Quick start
 
@@ -162,31 +161,18 @@ status = robot.get_status(run_id)
 print(status["run_status"])   # "running" / "succeeded" / "failed" / "stopped"
 ```
 
-## Camera
+## Integrated camera
 
 ```python
-from opentrons_driver.cv import CameraController, list_cameras
+robot = Opentrons("10.0.239.103")
+robot.startup()
 
-# Discover available cameras
-cameras = list_cameras()
-print(cameras)   # [(0, (1280, 720)), (1, (640, 480))]
-
-cam = CameraController(camera_index=0, resolution=(1280, 720))
-cam.connect()
-
-frame, path = cam.capture_image(save=True)                       # auto-timestamped
-frame, path = cam.capture_image(save=True, filename="well_A1")  # saves as captures/well_A1.jpg
-
-cam.record_video(duration_seconds=10, filename="experiment")
-
-cam.start_video_recording(filename="run_001", fps=30)
-# ... robot moves ...
-cam.stop_video_recording()
-
-cam.disconnect()
+image = robot.capture_robot_image(filename="deck_after_transfer")
+print(image["path"])
+print(image["width"], image["height"])
 ```
 
-See docstrings in `driver/src/opentrons_driver/cv/camera.py` for full parameter and error details.
+`capture_robot_image()` calls the OT-2 `POST /camera/picture` endpoint, saves the returned JPEG to `captures/` by default, and returns the saved path plus a base64 JPEG payload. It does not require an external camera.
 
 ## Custom labware
 
@@ -212,8 +198,6 @@ Drop any `.json` file following the [Opentrons labware schema](https://github.co
 | Python | >= 3.14 | — |
 | `pydantic` | >= 2.12.5 | Protocol model validation |
 | `requests` | >= 2.32.0 | HTTP transport |
-| `opencv-python` | >= 4.8.0 | Camera capture and video recording |
-| `numpy` | >= 1.26.0 | Image array handling |
 
 ## Development
 

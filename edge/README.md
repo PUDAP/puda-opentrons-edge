@@ -34,11 +34,7 @@ Edit `edge/.env`:
 ```ini
 MACHINE_ID=opentrons
 OPENTRONS_IP=10.0.239.103
-CAMERA_INDEX=0
 NATS_SERVERS=nats://100.109.131.12:4222,nats://100.109.131.12:4223,nats://100.109.131.12:4224
-# CAMERA_RESOLUTION=1280x720       # optional
-# CAMERA_CAPTURES_FOLDER=captures  # optional
-# CAMERA_DB_PATH=puda.db           # optional
 ```
 
 | Variable | Required | Default | Description |
@@ -46,10 +42,6 @@ NATS_SERVERS=nats://100.109.131.12:4222,nats://100.109.131.12:4223,nats://100.10
 | `MACHINE_ID` | yes | — | Unique identifier for this robot on the NATS bus |
 | `OPENTRONS_IP` | yes | — | IPv4 address of the OT-2 on the local network |
 | `NATS_SERVERS` | yes | — | Comma-separated list of NATS server URLs |
-| `CAMERA_INDEX` | no | unset | V4L2 device index (e.g. `0`, `1`). Omit to run without camera. |
-| `CAMERA_RESOLUTION` | no | camera default | Resolution string e.g. `1280x720` |
-| `CAMERA_CAPTURES_FOLDER` | no | `captures` | Directory for saved images and videos |
-| `CAMERA_DB_PATH` | no | `puda.db` | Path to the SQLite database for image persistence |
 | `OPENROUTER_API_KEY` | no | unset | API key for OpenRouter (reserved for future use) |
 
 ---
@@ -79,8 +71,7 @@ Command names map directly to `Opentrons` driver method names.
 | `resume` | `run_id` (str) | Resume a paused protocol |
 | `stop` | `run_id` (str) | Stop / cancel a run |
 | `upload_labware` | `labware` (dict) | Upload a custom labware definition |
-| `capture_image` | `filename?` (str) | Capture from the external USB camera; returns path, saved flag, base64 JPEG, and dimensions |
-| `capture_robot_image` | `filename?` (str) | Capture from the OT-2's on-board camera via `POST /camera/picture`; same return format |
+| `capture_robot_image` | `filename?` (str), `captures_folder?` (str) | Capture a JPEG from the OT-2 integrated camera |
 | `is_connected` | — | Check robot reachability |
 | `get_labware_types` | — | List known labware load-names |
 | `get_pipette_types` | — | List known pipette instrument names |

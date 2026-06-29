@@ -165,15 +165,6 @@ OPENTRONS_IP=192.168.1.25
 NATS_SERVERS=nats://localhost:4222
 ```
 
-Optional camera settings:
-
-```env
-CAMERA_RTSP_URL=rtsp://username:password@camera-ip:554/stream1
-CAMERA_RESOLUTION=1280x720
-CAMERA_CAPTURES_FOLDER=captures
-CAMERA_DB_PATH=../my-opentrons-puda-project/puda.db
-```
-
 Field meanings:
 
 
@@ -182,10 +173,6 @@ Field meanings:
 | `MACHINE_ID`             | The name PUDA uses for this robot                             |
 | `OPENTRONS_IP`           | The robot IP address from the Opentrons App                   |
 | `NATS_SERVERS`           | The message server used by PUDA and Edge                      |
-| `CAMERA_RTSP_URL`        | Optional external camera stream                               |
-| `CAMERA_RESOLUTION`      | Optional camera resolution, such as `1280x720`                |
-| `CAMERA_CAPTURES_FOLDER` | Optional folder for saved images and videos                   |
-| `CAMERA_DB_PATH`         | Optional path to the PUDA database used for image persistence |
 
 
 > **Important:** Do not share `.env` files publicly. They may contain private lab network settings.
@@ -543,4 +530,3 @@ Fix:
 - Keep only one Edge service running for the robot.
 - Restart NATS if needed.
 - Restart the Opentrons Edge service.
-

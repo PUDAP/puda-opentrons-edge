@@ -3,7 +3,7 @@
 The :class:`Opentrons` class is the primary entry-point for this package.  It
 exposes a clean, intent-oriented API that wires together the underlying
 controllers for protocol execution, run control, labware management, and
-camera capture.
+resource discovery.
 
 Example::
 
@@ -30,7 +30,7 @@ Example::
 
 from __future__ import annotations
 
-import base64 as _base64
+import base64
 import logging
 import threading
 import time
@@ -51,13 +51,28 @@ from opentrons_driver.protocol import (
     get_labware_types,
     get_pipette_types,
 )
-from opentrons_driver.cv import CameraController
 
 logger = logging.getLogger(__name__)
 
 _TERMINAL_STATES = {"succeeded", "failed", "stopped"}
 _CREATE_RUN_RETRIES = 4
 _CREATE_RUN_RETRY_DELAY = 1.0
+_JPEG_SOI = b"\xff\xd8"
+_JPEG_SOF_MARKERS = {
+    0xC0,
+    0xC1,
+    0xC2,
+    0xC3,
+    0xC5,
+    0xC6,
+    0xC7,
+    0xC9,
+    0xCA,
+    0xCB,
+    0xCD,
+    0xCE,
+    0xCF,
+}
 
 
 class Opentrons:
@@ -68,20 +83,10 @@ class Opentrons:
             Defaults to ``"10.0.239.103"``.
         port: HTTP port (default ``31950``).
         timeout: Default HTTP timeout in seconds (default ``10``).
-        camera_index: Camera device index (e.g. ``0``) or device path.
-            Pass ``None`` (default) to run without a camera.
-        camera_resolution: Optional ``(width, height)`` tuple applied on
-            connect. Ignored when *camera_index* is ``None``.
-        captures_folder: Directory for saved images/videos.
-            Defaults to ``"captures"``.
         status_retries: Number of attempts before treating the robot as
             unreachable (default ``3``).  Retries are only triggered by
             transient network errors (timeout / connection reset).
         retry_delay: Seconds to wait between retry attempts (default ``2.0``).
-
-    Attributes:
-        camera: :class:`~opentrons_driver.cv.CameraController` instance, or
-            ``None`` when no *camera_index* was supplied.
     """
 
     def __init__(
@@ -89,10 +94,6 @@ class Opentrons:
         robot_ip: str = DEFAULT_ROBOT_IP,
         port: int = 31950,
         timeout: int = 10,
-        camera_index: Optional[Union[int, str]] = None,
-        camera_resolution: Optional[tuple] = None,
-        captures_folder: str = "captures",
-        db_path: Optional[str] = None,
         status_retries: int = 3,
         retry_delay: float = 2.0,
     ) -> None:
@@ -105,20 +106,9 @@ class Opentrons:
         self._run_op_lock = threading.RLock()
         self._tip_offsets: dict[tuple[str, ...], int] = {}
 
-        self.camera: Optional[CameraController] = (
-            CameraController(
-                camera_index=camera_index,
-                resolution=camera_resolution,
-                captures_folder=captures_folder,
-                db_path=db_path,
-            )
-            if camera_index is not None
-            else None
-        )
-
         logger.info(
-            "OT2 driver initialised (ip=%s port=%s camera=%s)",
-            robot_ip, port, camera_index,
+            "OT2 driver initialised (ip=%s port=%s)",
+            robot_ip, port,
         )
 
     @property
@@ -127,88 +117,23 @@ class Opentrons:
 
     def startup(self) -> None:
         """
-        Connect to the robot and camera (if configured).
+        Start the OT-2 driver.
 
-        Initialises the HTTP client and opens the camera device if a
-        camera_index was supplied at construction time.  If the camera
-        fails to open, a warning is logged and the driver continues
-        without camera support.
+        The OT-2 HTTP connection is stateless, so startup currently logs the
+        target robot URL and does not open persistent resources.
         """
         logger.info("OT2 driver started (url=%s)", self._base_url)
-        if self.camera is not None:
-            try:
-                self.camera.connect()
-                logger.info("Camera connected (index=%s)", self.camera.camera_index)
-            except IOError as e:
-                logger.warning("Camera unavailable, continuing without it: %s", e)
-                self.camera = None
 
     def shutdown(self) -> None:
         """
-        Disconnect the camera and release all resources.
+        Release driver resources.
 
-        The OT-2 HTTP connection is stateless so no robot teardown is
-        required.  Only the camera (if connected) needs explicit cleanup.
+        The OT-2 HTTP connection is stateless so no robot teardown is required.
 
         Returns:
             None
         """
-        if self.camera is not None:
-            self.camera.disconnect()
-            logger.info("Camera disconnected")
-
-    def capture_image(self, filename: Optional[str] = None) -> dict:
-        """
-        Capture and save an image from the configured camera.
-
-        The captured frame is:
-        - written to disk as a JPEG file (inside captures_folder),
-        - persisted as a BLOB row in puda.db (captures table), and
-        - returned inline as ``image_base64`` so the Windows runner can
-          decode it directly from the puda CLI JSON output.
-
-        Args:
-            filename: Filename for the saved image. A timestamped name is
-                      generated automatically when omitted. If given without
-                      an extension, .jpg is appended. Relative paths are
-                      resolved inside the captures_folder.
-
-        Returns:
-            dict with keys:
-                path (str)           Absolute path of the saved image file.
-                saved (bool)         True if the file exists after capture.
-                image_base64 (str)   Base64-encoded bytes read from the saved file.
-                image_format (str)   Always ``"jpeg"``.
-                width (int)          Frame width in pixels.
-                height (int)         Frame height in pixels.
-
-        Raises:
-            RuntimeError: If no camera was configured at construction time.
-            IOError: If the camera is not connected or capture fails.
-        """
-        if self.camera is None:
-            raise RuntimeError(
-                "No camera configured. Pass camera_index when constructing Opentrons."
-            )
-
-        frame, fp = self.camera.capture_image(save=True, filename=filename, save_to_db=True)
-
-        assert fp is not None  # save=True always resolves a path
-        height, width = frame.shape[:2]
-
-        # Read the saved file bytes so the base64 payload matches exactly what
-        # is on disk (no secondary encode step).
-        image_base64 = _base64.b64encode(fp.read_bytes()).decode("ascii")
-
-        logger.info("Image captured: %s (%dx%d)", fp, width, height)
-        return {
-            "path": str(fp),
-            "saved": fp.exists(),
-            "image_base64": image_base64,
-            "image_format": "jpeg",
-            "width": width,
-            "height": height,
-        }
+        logger.info("OT2 driver stopped")
 
     # ------------------------------------------------------------------
     # HTTP helpers
@@ -445,6 +370,71 @@ class Opentrons:
             return self._send_action(run_id, "stop")
 
     # ------------------------------------------------------------------
+    # Integrated camera
+    # ------------------------------------------------------------------
+
+    def capture_robot_image(
+        self,
+        filename: Optional[str] = None,
+        captures_folder: Union[str, Path] = "captures",
+    ) -> dict:
+        """
+        Capture an image from the OT-2 integrated camera.
+
+        Calls the robot-server ``POST /camera/picture`` endpoint and saves the
+        returned JPEG bytes to disk. This does not require an external USB or
+        RTSP camera.
+
+        Args:
+            filename: Optional output filename. A timestamped name is generated
+                when omitted. If no suffix is supplied, ``.jpg`` is appended.
+                Relative paths are resolved inside ``captures_folder``.
+            captures_folder: Directory used for relative output filenames.
+
+        Returns:
+            dict with keys:
+                path (str): Absolute path of the saved image file.
+                saved (bool): True when the file exists after capture.
+                image_base64 (str): Base64-encoded JPEG bytes.
+                image_format (str): Always ``"jpeg"``.
+                width (int | None): JPEG width when it can be parsed.
+                height (int | None): JPEG height when it can be parsed.
+                robot_ip (str): Robot IP address.
+
+        Raises:
+            RuntimeError: If the robot does not return image bytes.
+        """
+        resp = self.post("/camera/picture", timeout=30)
+        if resp.status_code not in (200, 201):
+            raise RuntimeError(
+                f"Failed to capture robot image (HTTP {resp.status_code}): {resp.text}"
+            )
+
+        image_bytes = resp.content
+        if not image_bytes:
+            raise RuntimeError("Robot camera capture returned an empty response.")
+        content_type = resp.headers.get("content-type", "").lower()
+        if "jpeg" not in content_type and not image_bytes.startswith(_JPEG_SOI):
+            preview = resp.text[:200] if resp.text else "<binary response>"
+            raise RuntimeError(f"Robot camera capture returned a non-JPEG response: {preview}")
+
+        file_path = self._resolve_capture_path(filename, captures_folder)
+        file_path.parent.mkdir(parents=True, exist_ok=True)
+        file_path.write_bytes(image_bytes)
+
+        width, height = self._jpeg_dimensions(image_bytes)
+        logger.info("Robot image captured: %s", file_path)
+        return {
+            "path": str(file_path),
+            "saved": file_path.exists(),
+            "image_base64": base64.b64encode(image_bytes).decode("ascii"),
+            "image_format": "jpeg",
+            "width": width,
+            "height": height,
+            "robot_ip": self.robot_ip,
+        }
+
+    # ------------------------------------------------------------------
     # Labware
     # ------------------------------------------------------------------
 
@@ -505,6 +495,59 @@ class Opentrons:
             list[str]: Pipette instrument names (e.g. "p300_single_gen2", "p1000_single_gen2").
         """
         return get_pipette_types()
+
+    @staticmethod
+    def _resolve_capture_path(
+        filename: Optional[str],
+        captures_folder: Union[str, Path],
+    ) -> Path:
+        if filename is None or not str(filename).strip():
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+            filename = f"robot_capture_{timestamp}.jpg"
+
+        file_path = Path(filename)
+        if not file_path.suffix:
+            file_path = file_path.with_suffix(".jpg")
+        if not file_path.is_absolute():
+            file_path = Path(captures_folder) / file_path
+        return file_path.resolve()
+
+    @staticmethod
+    def _jpeg_dimensions(image_bytes: bytes) -> tuple[Optional[int], Optional[int]]:
+        """Return ``(width, height)`` from JPEG SOF metadata when available."""
+        if not image_bytes.startswith(_JPEG_SOI):
+            return None, None
+
+        i = 2
+        size = len(image_bytes)
+        while i + 9 < size:
+            if image_bytes[i] != 0xFF:
+                i += 1
+                continue
+
+            while i < size and image_bytes[i] == 0xFF:
+                i += 1
+            if i >= size:
+                break
+
+            marker = image_bytes[i]
+            i += 1
+            if marker in (0xD8, 0xD9):
+                continue
+            if i + 2 > size:
+                break
+
+            segment_length = int.from_bytes(image_bytes[i : i + 2], "big")
+            if segment_length < 2 or i + segment_length > size:
+                break
+
+            if marker in _JPEG_SOF_MARKERS and segment_length >= 7:
+                height = int.from_bytes(image_bytes[i + 3 : i + 5], "big")
+                width = int.from_bytes(image_bytes[i + 5 : i + 7], "big")
+                return width, height
+
+            i += segment_length
+        return None, None
 
     # ------------------------------------------------------------------
     # Run internals (formerly controllers/run.py)
