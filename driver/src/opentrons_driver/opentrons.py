@@ -47,7 +47,6 @@ from opentrons_driver.protocol import (
     commit_tip_advances,
     preprocess_protocol_code,
     upload_protocol,
-    upload_custom_labware,
     get_labware_types,
     get_pipette_types,
 )
@@ -433,39 +432,6 @@ class Opentrons:
             "height": height,
             "robot_ip": self.robot_ip,
         }
-
-    # ------------------------------------------------------------------
-    # Labware
-    # ------------------------------------------------------------------
-
-    def upload_labware(self, labware: Union[dict, str, Path]) -> dict:
-        """
-        Upload a custom labware definition to the robot.
-
-        Accepts either a labware definition dict or a path to a JSON file.
-        If the definition is already present on the robot (HTTP 409), the
-        upload is treated as successful.
-
-        Args:
-            labware (dict | str | Path): Labware definition dict, or path to a JSON file
-                                         containing the definition.
-
-        Returns:
-            dict: Upload result with keys:
-                load_name (str)      Labware load name (e.g. "my_custom_plate_1")
-                namespace (str)      Labware namespace
-                version (int)        Labware version
-                display_name (str)   Human-readable display name
-                already_exists (bool) True if the robot already had this definition
-                http_status (int)    HTTP status code returned by the robot
-                usage (str)          Python snippet to load this labware in a protocol
-
-        Raises:
-            FileNotFoundError: If a path is provided but the file does not exist.
-            ValueError: If the definition is missing parameters.loadName.
-            RuntimeError: If the robot returns an unexpected HTTP error.
-        """
-        return upload_custom_labware(self, labware)
 
     # ------------------------------------------------------------------
     # Resource catalogues (no robot connection required)

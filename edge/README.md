@@ -70,7 +70,6 @@ Command names map directly to `Opentrons` driver method names.
 | `pause` | `run_id` (str) | Pause a running protocol |
 | `resume` | `run_id` (str) | Resume a paused protocol |
 | `stop` | `run_id` (str) | Stop / cancel a run |
-| `upload_labware` | `labware` (dict) | Upload a custom labware definition |
 | `capture_robot_image` | `filename?` (str), `captures_folder?` (str) | Capture a JPEG from the OT-2 integrated camera |
 | `is_connected` | — | Check robot reachability |
 | `get_labware_types` | — | List known labware load-names |

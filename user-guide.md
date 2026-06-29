@@ -280,21 +280,9 @@ ProtocolCommand(command_type="load_labware", params={
 
 When a custom labware type is found in `driver/src/opentrons_driver/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
 
-#### Upload the labware to the robot
-
-The driver can upload a custom labware definition to the robot:
-
-```python
-from opentrons_driver import Opentrons
-
-robot = Opentrons("<robot-ip-address>")
-robot.startup()
-robot.upload_labware("driver/src/opentrons_driver/labware/my_custom_plate_1.json")
-```
-
-If the labware already exists on the robot, the upload is treated as successful.
-
 After adding or changing a labware JSON file, restart the Opentrons Edge service so it reloads the labware list.
+
+Custom labware is embedded into generated protocols with Opentrons `load_labware_from_definition()`, so a separate labware upload step is not required.
 
 ---
 

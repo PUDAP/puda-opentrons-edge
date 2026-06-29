@@ -5,7 +5,6 @@ Public API
 - :class:`Protocol` / :class:`ProtocolCommand` — build OT-2 protocols programmatically
   and generate runnable Python code via ``Protocol.to_python_code()``.
 - :func:`upload_protocol` — preprocess and upload a protocol file to the robot.
-- :func:`upload_custom_labware` — upload a custom labware definition.
 - :func:`get_labware_types` / :func:`get_pipette_types` — enumerate known names.
 - :data:`BUILTIN_LABWARE`
 
@@ -47,7 +46,7 @@ from pprint import pformat
 import re
 import tempfile
 from pathlib import Path
-from typing import Any, Optional, Union
+from typing import Any, Optional
 
 from pydantic import BaseModel
 
@@ -62,6 +61,17 @@ _TIP_WELL_ORDER = tuple(f"{row}{col}" for row in "ABCDEFGH" for col in range(1, 
 _LABWARE_DIR = Path(__file__).parent / "labware"
 
 
+def _normalise_labware_definition(definition: dict[str, Any]) -> None:
+    """Normalise schema-sensitive custom labware metadata in place."""
+    metadata = definition.get("metadata")
+    if not isinstance(metadata, dict):
+        return
+
+    unit = metadata.get("displayVolumeUnits")
+    if isinstance(unit, str) and unit.strip() in {"uL", "ul", "µL", "ÂµL"}:
+        metadata["displayVolumeUnits"] = "\u00b5L"
+
+
 def _load_builtin_labware() -> dict[str, dict]:
     """Load all labware JSON files from the labware/ directory."""
     definitions: dict[str, dict] = {}
@@ -69,6 +79,7 @@ def _load_builtin_labware() -> dict[str, dict]:
         try:
             with open(json_file, encoding="utf-8") as f:
                 definition = json.load(f)
+            _normalise_labware_definition(definition)
             load_name = definition.get("parameters", {}).get("loadName", "")
             if not load_name:
                 logger.warning(
@@ -142,78 +153,6 @@ def get_pipette_types() -> list[str]:
     return list(PIPETTE_TYPES)
 
 
-def upload_custom_labware(client: Any, labware: Union[dict, str, Path]) -> dict:
-    """
-    Upload a custom labware definition to the robot.
-
-    Accepts either a labware definition dict or a path to a JSON file on disk.
-    If the definition is already present on the robot (HTTP 409), the upload
-    is treated as successful and already_exists is set to True.
-
-    Args:
-        client: Connected Opentrons driver instance.
-        labware: Labware definition dict, or path to a JSON file containing it.
-
-    Returns:
-        Upload result dict with keys:
-            load_name (str)       Labware load name (e.g. "my_custom_plate_1")
-            namespace (str)       Labware namespace
-            version (int)         Labware version number
-            display_name (str)    Human-readable display name
-            already_exists (bool) True if the robot already had this definition
-            http_status (int)     HTTP status code returned by the robot
-            usage (str)           Python snippet to load this labware in a protocol
-
-    Raises:
-        FileNotFoundError: If a path is provided but the file does not exist.
-        ValueError: If the definition is missing parameters.loadName.
-        RuntimeError: If the robot returns an unexpected HTTP error.
-    """
-    if isinstance(labware, (str, Path)):
-        path = Path(labware)
-        if not path.exists():
-            raise FileNotFoundError(f"Labware file not found: {path}")
-        with open(path, encoding="utf-8") as f:
-            labware_data: dict = json.load(f)
-    else:
-        labware_data = labware
-
-    load_name = labware_data.get("parameters", {}).get("loadName", "")
-    if not load_name:
-        raise ValueError("Invalid labware definition — missing 'loadName' in 'parameters'.")
-
-    namespace = labware_data.get("namespace", "custom")
-    version = labware_data.get("version", 1)
-    display_name = labware_data.get("metadata", {}).get("displayName", "")
-
-    resp = client.post(
-        "/labware/definitions",
-        json=labware_data,
-        headers={"Content-Type": "application/json", "Opentrons-Version": "3"},
-        timeout=10,
-    )
-
-    already_exists = resp.status_code == 409
-    success = resp.status_code in (200, 201) or already_exists
-
-    if not success:
-        logger.error("Failed to upload labware '%s' (HTTP %s): %s", load_name, resp.status_code, resp.text[:500])
-        raise RuntimeError(
-            f"Failed to upload labware '{load_name}' (HTTP {resp.status_code}): {resp.text[:500]}"
-        )
-
-    logger.info("Custom labware '%s' uploaded (namespace=%s, already_exists=%s)", load_name, namespace, already_exists)
-    return {
-        "load_name": load_name,
-        "namespace": namespace,
-        "version": version,
-        "display_name": display_name,
-        "already_exists": already_exists,
-        "http_status": resp.status_code,
-        "usage": f"protocol.load_labware('{load_name}', slot, namespace='{namespace}')",
-    }
-
-
 # ===========================================================================
 # Code generation helpers
 # ===========================================================================
@@ -230,7 +169,7 @@ def _render_str_dict(d: dict, indent: int = 4) -> str:
 
 def _render_python_dict(d: dict, indent: int = 8) -> str:
     """Render *d* as a Python dict literal for embedding in generated protocols."""
-    return pformat(d, indent=indent, width=100, sort_dicts=False)
+    return pformat(d, indent=indent, width=100, sort_dicts=False).replace("µL", "\\u00b5L")
 
 
 def _get_first(params: dict[str, Any], keys: list[str], default: Any = None) -> Any:

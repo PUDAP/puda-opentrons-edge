@@ -9,7 +9,7 @@ Communicates directly with the OT-2 REST API over HTTP — no Opentrons App, no 
 - **Robot control** — upload and run Opentrons protocols directly from Python
 - **Run management** — play, pause, stop, and monitor protocol runs
 - **Protocol builder** — construct OT-2 protocols programmatically using Pydantic models
-- **Labware management** — upload custom labware definitions; built-ins auto-discovered from `labware/`
+- **Labware management** — auto-discover custom labware definitions from `labware/`
 - **Integrated camera capture** — capture JPEG images from the OT-2 robot camera through the robot API
 - **Cross-platform** — works on Windows, macOS, and Linux
 
@@ -179,17 +179,13 @@ print(image["width"], image["height"])
 JSON definitions in `labware/` are auto-loaded at import — no Python edits needed.
 
 ```python
-from opentrons_driver.protocol import BUILTIN_LABWARE
-from opentrons_driver import Opentrons
+from opentrons_driver.protocol import BUILTIN_LABWARE, get_labware_types
 
-robot = Opentrons("10.0.239.103")
-robot.startup()
-
-robot.upload_labware(BUILTIN_LABWARE["mass_balance_vial_30000"])
-robot.upload_labware("/path/to/my_labware.json")
+print(get_labware_types())
+print(BUILTIN_LABWARE["mass_balance_vial_30000"]["metadata"]["displayName"])
 ```
 
-Drop any `.json` file following the [Opentrons labware schema](https://github.com/Opentrons/opentrons/tree/edge/shared-data/labware) into `labware/`. Its `parameters.loadName` becomes the key in `BUILTIN_LABWARE`.
+Drop any `.json` file following the [Opentrons labware schema](https://github.com/Opentrons/opentrons/tree/edge/shared-data/labware) into `labware/`. Its `parameters.loadName` becomes the key in `BUILTIN_LABWARE` and can be used as `labware_type` in a `load_labware` protocol command. For custom definitions, the protocol builder embeds the definition with Opentrons `load_labware_from_definition()`.
 
 ## Requirements
 
