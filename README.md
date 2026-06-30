@@ -2,12 +2,11 @@
 
 Python workspace for controlling an Opentrons OT-2 robot through PUDA.
 
-This repository contains two packages:
+This repository contains one root Python package:
 
 | Package | Purpose |
 |---|---|
-| `opentrons-driver` | High-level Python driver for the OT-2 HTTP API. It uploads protocols, controls runs, captures camera images, and builds protocol code. |
-| `opentrons-edge` | NATS edge service that exposes the driver to PUDA. It receives commands, executes them on the robot, and publishes telemetry. |
+| `opentrons-edge` | PUDA/NATS edge service plus the bundled `opentrons` Python package for the OT-2 HTTP API. |
 
 For a lab-user setup walkthrough, see [user-guide.md](user-guide.md).
 
@@ -18,18 +17,15 @@ Opentron_dev/
 |-- pyproject.toml
 |-- uv.lock
 |-- user-guide.md
-|-- driver/
-|   |-- README.md
-|   |-- pyproject.toml
-|   `-- src/opentrons_driver/
-|       |-- opentrons.py
-|       |-- protocol.py
-|       `-- labware/
-`-- edge/
-    |-- README.md
-    |-- pyproject.toml
-    |-- main.py
-    `-- .env.example
+|-- main.py
+|-- .env.example
+|-- EDGE.md
+|-- DRIVER.md
+`-- opentrons/
+    |-- __init__.py
+    |-- driver.py
+    |-- protocol.py
+    `-- labware/
 ```
 
 ## Requirements
@@ -41,29 +37,29 @@ Opentron_dev/
 
 ## Setup
 
-Install all workspace packages from the repository root:
+Install the root project from the repository root:
 
 ```bash
-uv sync --all-packages
+uv sync
 ```
 
-This creates `.venv/` and installs both `opentrons-driver` and `opentrons-edge` in the same workspace environment.
+This creates `.venv/` and installs `opentrons-edge` plus the bundled `opentrons` package in editable mode.
 
 ## Configure the Edge Service
 
 Create the local environment file:
 
 ```bash
-cp edge/.env.example edge/.env
+cp .env.example .env
 ```
 
 On Windows PowerShell:
 
 ```powershell
-copy edge\.env.example edge\.env
+copy .env.example .env
 ```
 
-Edit `edge/.env`:
+Edit `.env`:
 
 ```env
 MACHINE_ID=opentrons
@@ -77,14 +73,14 @@ NATS_SERVERS=nats://100.109.131.12:4222,nats://100.109.131.12:4223,nats://100.10
 | `OPENTRONS_IP` | OT-2 robot IP address from the Opentrons App. |
 | `NATS_SERVERS` | Comma-separated NATS server URLs. |
 
-Do not commit `edge/.env`; it contains lab-specific network settings.
+Do not commit `.env`; it contains lab-specific network settings.
 
 ## Run the Edge Service
 
 From the repository root:
 
 ```bash
-uv run --package opentrons-edge python edge/main.py
+uv run opentrons-edge
 ```
 
 Expected log messages include:
@@ -102,9 +98,9 @@ Keep the process running while PUDA is sending robot commands.
 Use the driver directly when you want to test robot connectivity or run a protocol without PUDA:
 
 ```python
-from opentrons_driver import Opentrons
+from opentrons.driver import Driver
 
-robot = Opentrons(robot_ip="10.0.239.103")
+robot = Driver(robot_ip="10.0.239.103")
 robot.startup()
 
 if not robot.is_connected():
@@ -117,7 +113,7 @@ print(result["run_status"])
 The driver also includes a protocol builder:
 
 ```python
-from opentrons_driver.protocol import Protocol, ProtocolCommand
+from opentrons.protocol import Protocol, ProtocolCommand
 
 protocol = Protocol(
     protocol_name="Water Transfer",
@@ -158,7 +154,7 @@ print(protocol.to_python_code())
 
 ## PUDA/NATS Commands
 
-The edge service maps incoming NATS command names directly to public `Opentrons` driver methods.
+The edge service maps incoming NATS command names directly to public `Driver` methods.
 
 Common commands:
 
@@ -174,42 +170,42 @@ Common commands:
 | `get_labware_types` | List available labware load names. |
 | `get_pipette_types` | List available pipette types. |
 
-See [edge/README.md](edge/README.md) for the full NATS command flow and telemetry subjects.
+See [EDGE.md](EDGE.md) for the full NATS command flow and telemetry subjects.
 
 ## Custom Labware
 
 Add custom Opentrons labware JSON files to:
 
 ```text
-driver/src/opentrons_driver/labware/
+opentrons/labware/
 ```
 
 The driver discovers these files automatically. The JSON `parameters.loadName` value becomes the `labware_type` used by protocol commands.
 
-See [driver/README.md](driver/README.md) for details and examples.
+See [DRIVER.md](DRIVER.md) for details and examples.
 
 ## Development
 
 Install dependencies:
 
 ```bash
-uv sync --all-packages
+uv sync
 ```
 
 Run the edge service:
 
 ```bash
-uv run --package opentrons-edge python edge/main.py
+uv run opentrons-edge
 ```
 
 Run a Python command inside the workspace:
 
 ```bash
-uv run python -c "import opentrons_driver; print('ready')"
+uv run python -c "from opentrons.driver import Driver; print('ready')"
 ```
 
 ## Documentation
 
 - [User guide](user-guide.md) - setup guide for lab users and technicians.
-- [Driver README](driver/README.md) - direct Python driver usage and protocol builder examples.
-- [Edge README](edge/README.md) - NATS edge service, command routing, and telemetry.
+- [Driver README](DRIVER.md) - direct Python driver usage and protocol builder examples.
+- [Edge README](EDGE.md) - NATS edge service, command routing, and telemetry.

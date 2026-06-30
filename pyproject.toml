@@ -1,2 +1,30 @@
-[tool.uv.workspace]
-members = ["edge", "driver"]
+[project]
+name = "opentrons-edge"
+version = "0.1.0"
+description = "PUDA edge service and high-level driver for the Opentrons OT-2"
+readme = "README.md"
+requires-python = ">=3.14"
+dependencies = [
+    "puda-comms==0.0.10",
+    "pydantic>=2.12.5",
+    "pydantic-settings>=2.12.0",
+    "python-dotenv>=1.2.1",
+    "requests>=2.32.0",
+]
+
+[project.scripts]
+opentrons-edge = "main:run"
+
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+py-modules = ["main"]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["opentrons*"]
+
+[tool.setuptools.package-data]
+opentrons = ["labware/*.json"]

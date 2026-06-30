@@ -121,14 +121,15 @@ Expected repository structure:
 opentrons/
 |-- pyproject.toml
 |-- uv.lock
-|-- driver/
-|   |-- pyproject.toml
-|   `-- src/opentrons_driver/
-`-- edge/
-    |-- main.py
-    |-- pyproject.toml
-    |-- README.md
-    `-- .env.example
+|-- main.py
+|-- .env.example
+|-- EDGE.md
+|-- DRIVER.md
+`-- opentrons/
+    |-- __init__.py
+    |-- driver.py
+    |-- protocol.py
+    `-- labware/
 ```
 
 If your organization has a GitHub repository, download it as a ZIP file or clone it if Git is available.
@@ -138,16 +139,16 @@ If your organization has a GitHub repository, download it as a ZIP file or clone
 From the main `opentrons` folder:
 
 ```bash
-cp edge/.env.example edge/.env
+cp .env.example .env
 ```
 
 On Windows PowerShell:
 
 ```powershell
-copy edge\.env.example edge\.env
+copy .env.example .env
 ```
 
-Open `edge/.env` in a text editor.
+Open `.env` in a text editor.
 
 Template:
 
@@ -182,15 +183,15 @@ Field meanings:
 From the main `opentrons` folder, run:
 
 ```bash
-uv sync --all-packages
+uv sync
 ```
 
-This installs both workspace packages:
+This installs the root project and bundled driver:
 
-- `opentrons-driver`
 - `opentrons-edge`
+- `opentrons`
 
-You do not need to install the Opentrons robot driver manually. It is part of this workspace and is installed automatically by `uv sync --all-packages`.
+You do not need to install the Opentrons robot driver manually. It is part of this project and is installed automatically by `uv sync`.
 
 Verification:
 
@@ -199,10 +200,10 @@ Verification:
 
 ### 2.4 Confirm the Opentrons robot driver is installed
 
-After running `uv sync --all-packages`, verify the driver:
+After running `uv sync`, verify the driver:
 
 ```bash
-uv run python -c "import opentrons_driver; print('Opentrons driver ready')"
+uv run python -c "from opentrons.driver import Driver; print('Opentrons driver ready')"
 ```
 
 Expected output:
@@ -214,7 +215,7 @@ Opentrons driver ready
 If this fails, check that you are running the command from the main `opentrons` folder and re-run:
 
 ```bash
-uv sync --all-packages
+uv sync
 ```
 
 ### 2.5 Add custom labware
@@ -228,13 +229,13 @@ Custom labware definitions are JSON files. Add the definition file to this packa
 Place the custom labware JSON file in:
 
 ```text
-driver/src/opentrons_driver/labware/
+opentrons/labware/
 ```
 
 Example:
 
 ```text
-driver/src/opentrons_driver/labware/my_custom_plate_1.json
+opentrons/labware/my_custom_plate_1.json
 ```
 
 The file must include `parameters.loadName`. The driver uses this value as the labware type name.
@@ -259,7 +260,7 @@ Example JSON fields to check:
 From the main `opentrons` folder, run:
 
 ```bash
-uv run python -c "from opentrons_driver.protocol import get_labware_types; print(get_labware_types())"
+uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
 ```
 
 Confirm your `parameters.loadName` value appears in the printed list.
@@ -278,7 +279,7 @@ ProtocolCommand(command_type="load_labware", params={
 })
 ```
 
-When a custom labware type is found in `driver/src/opentrons_driver/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
+When a custom labware type is found in `opentrons/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
 
 After adding or changing a labware JSON file, restart the Opentrons Edge service so it reloads the labware list.
 
@@ -295,7 +296,7 @@ Confirm NATS is already running or reachable, then start Opentrons Edge.
 Open a second terminal window. From the main `opentrons` folder, run:
 
 ```bash
-uv run --package opentrons-edge python edge/main.py
+uv run opentrons-edge
 ```
 
 Expected output includes:
@@ -315,7 +316,7 @@ Keep this terminal open while using PUDA.
 The livestream stack uses MediaMTX and ffmpeg to stream two Linux V4L2 cameras.
 This is intended for a Linux Docker host with `/dev/video*` devices.
 
-Add or update these values in `edge/.env`:
+Add or update these values in `.env`:
 
 ```env
 TAILSCALE_IP=<host-tailscale-ip-or-lan-ip>
@@ -326,13 +327,13 @@ VIDEO_DEVICE_1=/dev/video1
 Start the livestream stack:
 
 ```bash
-docker compose --env-file edge/.env -f compose.livestream.yml up -d
+docker compose --env-file .env -f compose.livestream.yml up -d
 ```
 
 Stop the livestream stack:
 
 ```bash
-docker compose --env-file edge/.env -f compose.livestream.yml down
+docker compose --env-file .env -f compose.livestream.yml down
 ```
 
 Stream endpoints:
@@ -513,13 +514,13 @@ Check:
 - The Opentrons App has been restarted after changing network settings.
 - The robot IP address was copied from the correct robot.
 
-If the robot IP address changed, update `OPENTRONS_IP` in `edge/.env`, then restart the Opentrons Edge service.
+If the robot IP address changed, update `OPENTRONS_IP` in `.env`, then restart the Opentrons Edge service.
 
 ### 5.2 Custom labware does not appear
 
 Check:
 
-- The JSON file is in `driver/src/opentrons_driver/labware/`.
+- The JSON file is in `opentrons/labware/`.
 - The file ends in `.json`.
 - The JSON includes `parameters.loadName`.
 - The `loadName` is the same value used as `labware_type` in the protocol.
@@ -528,7 +529,7 @@ Check:
 Confirm discovery:
 
 ```bash
-uv run python -c "from opentrons_driver.protocol import get_labware_types; print(get_labware_types())"
+uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
 ```
 
 ### 5.3 Protocol starts but robot movement is wrong

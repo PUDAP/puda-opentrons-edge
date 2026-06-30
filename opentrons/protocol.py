@@ -10,7 +10,7 @@ Public API
 
 Example::
 
-    from opentrons_driver.protocol import Protocol, ProtocolCommand, upload_protocol
+    from opentrons.protocol import Protocol, ProtocolCommand, upload_protocol
 
     protocol = Protocol(
         protocol_name="Simple Transfer",
@@ -330,7 +330,7 @@ class Protocol(BaseModel):
 
         Returns:
             Complete Opentrons Python protocol source, ready to be passed
-            to Opentrons.upload_and_run() or upload_protocol().
+            to Driver.upload_and_run() or upload_protocol().
         """
         body, data_read_code = self._build_body()
         code = self._build_header() + body
@@ -1333,11 +1333,11 @@ def upload_protocol(client: Any, code: str, filename: str = "protocol.py") -> st
     file, and POSTs it to the robot's /protocols endpoint.  The temporary
     file is deleted after upload regardless of success or failure.
 
-    This function is called internally by Opentrons.upload_and_run().
+    This function is called internally by Driver.upload_and_run().
     Use that method for the full upload-and-run workflow.
 
     Args:
-        client: Connected Opentrons driver instance.
+        client: Connected Driver instance.
         code: Raw Python protocol source code (markdown fences and indentation
               issues are corrected automatically).
         filename: Filename stored in the robot's run history. Defaults to "protocol.py".

@@ -2,12 +2,6 @@ version = 1
 revision = 3
 requires-python = ">=3.14"
 
-[manifest]
-members = [
-    "opentrons-driver",
-    "opentrons-edge",
-]
-
 [[package]]
 name = "annotated-types"
 version = "0.7.0"
@@ -86,39 +80,24 @@ wheels = [
 ]
 
 [[package]]
-name = "opentrons-driver"
+name = "opentrons-edge"
 version = "0.1.0"
-source = { editable = "driver" }
+source = { editable = "." }
 dependencies = [
+    { name = "puda-comms" },
     { name = "pydantic" },
+    { name = "pydantic-settings" },
+    { name = "python-dotenv" },
     { name = "requests" },
 ]
 
 [package.metadata]
 requires-dist = [
-    { name = "pydantic", specifier = ">=2.12.5" },
-    { name = "requests", specifier = ">=2.32.0" },
-]
-
-[[package]]
-name = "opentrons-edge"
-version = "0.1.0"
-source = { virtual = "edge" }
-dependencies = [
-    { name = "opentrons-driver" },
-    { name = "puda-comms" },
-    { name = "pydantic" },
-    { name = "pydantic-settings" },
-    { name = "python-dotenv" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "opentrons-driver", editable = "driver" },
     { name = "puda-comms", specifier = "==0.0.10" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
+    { name = "requests", specifier = ">=2.32.0" },
 ]
 
 [[package]]

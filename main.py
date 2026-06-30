@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from puda_comms import EdgeNatsClient, EdgeRunner
-from opentrons_driver.opentrons import Opentrons
+from opentrons.driver import Driver
 
 
 # Configure logging
@@ -58,7 +58,7 @@ async def main():
     )
 
     logger.info("Initializing machine driver")
-    driver = Opentrons(
+    driver = Driver(
         robot_ip=config.opentrons_ip,
     )
     driver.startup()
@@ -90,8 +90,8 @@ async def main():
     await runner.run()
 
 
-# Run main in a loop; retry on fatal errors, ignore KeyboardInterrupt.
-if __name__ == "__main__":
+def run() -> None:
+    """Run the edge service forever, retrying after fatal errors."""
     while True:
         try:
             asyncio.run(main())
@@ -101,3 +101,8 @@ if __name__ == "__main__":
         except Exception as e:
             logger.error("Fatal error: %s", e, exc_info=True)
             time.sleep(5)
+
+
+# Run main in a loop; retry on fatal errors, ignore KeyboardInterrupt.
+if __name__ == "__main__":
+    run()
