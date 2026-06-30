@@ -11,14 +11,13 @@ Quick start::
     print(result["run_status"])
 """
 
-from opentrons.driver import Driver, DEFAULT_ROBOT_IP
+from opentrons.driver import Driver
 from opentrons.protocol import Protocol, ProtocolCommand
 
 __version__ = "0.1.0"
 
 __all__ = [
     "Driver",
-    "DEFAULT_ROBOT_IP",
     "Protocol",
     "ProtocolCommand",
     "__version__",

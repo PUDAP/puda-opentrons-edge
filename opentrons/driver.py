@@ -40,8 +40,6 @@ from typing import Any, Optional, Union
 
 import requests
 
-DEFAULT_ROBOT_IP = "10.0.239.103"
-
 from opentrons.protocol import (
     apply_tip_tracking,
     commit_tip_advances,
@@ -79,7 +77,6 @@ class Driver:
 
     Args:
         robot_ip: IPv4 address of the robot on the local network.
-            Defaults to ``"10.0.239.103"``.
         port: HTTP port (default ``31950``).
         timeout: Default HTTP timeout in seconds (default ``10``).
         status_retries: Number of attempts before treating the robot as
@@ -90,7 +87,7 @@ class Driver:
 
     def __init__(
         self,
-        robot_ip: str = DEFAULT_ROBOT_IP,
+        robot_ip: str,
         port: int = 31950,
         timeout: int = 10,
         status_retries: int = 3,

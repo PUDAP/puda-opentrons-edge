@@ -62,16 +62,16 @@ copy .env.example .env
 Edit `.env`:
 
 ```env
-MACHINE_ID=opentrons
-OPENTRONS_IP=10.0.239.103
-NATS_SERVERS=nats://100.109.131.12:4222,nats://100.109.131.12:4223,nats://100.109.131.12:4224
+MACHINE_ID=opentrons-ot2
+OPENTRONS_IP=<opentrons_ip>
+NATS_SERVERS=<nats_servers>
 ```
 
 | Variable | Description |
 |---|---|
 | `MACHINE_ID` | Robot identifier used on the PUDA/NATS bus. |
-| `OPENTRONS_IP` | OT-2 robot IP address from the Opentrons App. |
 | `NATS_SERVERS` | Comma-separated NATS server URLs. |
+| `OPENTRONS_IP` | OT-2 robot IP address from the Opentrons App. |
 
 Do not commit `.env`; it contains lab-specific network settings.
 
@@ -83,106 +83,7 @@ From the repository root:
 uv run opentrons-edge
 ```
 
-Expected log messages include:
-
-```text
-OT2 machine initialized successfully
-NATS client initialized successfully
-Edge Service Ready
-```
-
 Keep the process running while PUDA is sending robot commands.
-
-## Driver Quick Start
-
-Use the driver directly when you want to test robot connectivity or run a protocol without PUDA:
-
-```python
-from opentrons.driver import Driver
-
-robot = Driver(robot_ip="10.0.239.103")
-robot.startup()
-
-if not robot.is_connected():
-    raise RuntimeError("Robot is unreachable")
-
-result = robot.upload_and_run(open("my_protocol.py").read())
-print(result["run_status"])
-```
-
-The driver also includes a protocol builder:
-
-```python
-from opentrons.protocol import Protocol, ProtocolCommand
-
-protocol = Protocol(
-    protocol_name="Water Transfer",
-    author="Lab",
-    description="Transfer 100 uL from A1 to A1",
-    robot_type="OT-2",
-    api_level="2.23",
-    commands=[
-        ProtocolCommand(command_type="load_labware", params={
-            "name": "tiprack",
-            "labware_type": "opentrons_96_tiprack_300ul",
-            "location": "11",
-        }),
-        ProtocolCommand(command_type="load_labware", params={
-            "name": "plate",
-            "labware_type": "corning_96_wellplate_360ul_flat",
-            "location": "5",
-        }),
-        ProtocolCommand(command_type="load_instrument", params={
-            "name": "p300",
-            "instrument_type": "p300_single_gen2",
-            "mount": "right",
-            "tip_racks": ["tiprack"],
-        }),
-        ProtocolCommand(command_type="transfer", params={
-            "pipette": "p300",
-            "volume": 100,
-            "source_labware": "plate",
-            "source_well": "A1",
-            "dest_labware": "plate",
-            "dest_well": "A2",
-        }),
-    ],
-)
-
-print(protocol.to_python_code())
-```
-
-## PUDA/NATS Commands
-
-The edge service maps incoming NATS command names directly to public `Driver` methods.
-
-Common commands:
-
-| Command | Description |
-|---|---|
-| `upload_and_run` | Upload protocol Python code and start a run. |
-| `get_status` | Get the current or specified run status. |
-| `pause` | Pause a run. |
-| `resume` | Resume a paused run. |
-| `stop` | Stop or cancel a run. |
-| `capture_robot_image` | Capture a JPEG from the OT-2 integrated camera. |
-| `is_connected` | Check robot reachability. |
-| `get_labware_types` | List available labware load names. |
-| `get_pipette_types` | List available pipette types. |
-
-See [EDGE.md](EDGE.md) for the full NATS command flow and telemetry subjects.
-
-## Custom Labware
-
-Add custom Opentrons labware JSON files to:
-
-```text
-opentrons/labware/
-```
-
-The driver discovers these files automatically. The JSON `parameters.loadName` value becomes the `labware_type` used by protocol commands.
-
-See [DRIVER.md](DRIVER.md) for details and examples.
 
 ## Development
 
@@ -198,14 +99,6 @@ Run the edge service:
 uv run opentrons-edge
 ```
 
-Run a Python command inside the workspace:
-
-```bash
-uv run python -c "from opentrons.driver import Driver; print('ready')"
-```
-
 ## Documentation
 
 - [User guide](user-guide.md) - setup guide for lab users and technicians.
-- [Driver README](DRIVER.md) - direct Python driver usage and protocol builder examples.
-- [Edge README](EDGE.md) - NATS edge service, command routing, and telemetry.

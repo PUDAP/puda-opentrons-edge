@@ -26,8 +26,8 @@ logger = logging.getLogger(__name__)
 
 class Config(BaseSettings):
     machine_id: str
-    opentrons_ip: str
     nats_servers: str
+    opentrons_ip: str
 
     model_config = SettingsConfigDict(
         env_file=Path(__file__).parent / ".env",
