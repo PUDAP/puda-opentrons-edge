@@ -78,7 +78,7 @@ class Driver:
     Args:
         robot_ip: IPv4 address of the robot on the local network.
         port: HTTP port (default ``31950``).
-        timeout: Default HTTP timeout in seconds (default ``10``).
+        timeout: Default HTTP timeout in seconds (default ``15``).
         status_retries: Number of attempts before treating the robot as
             unreachable (default ``3``).  Retries are only triggered by
             transient network errors (timeout / connection reset).
@@ -89,7 +89,7 @@ class Driver:
         self,
         robot_ip: str,
         port: int = 31950,
-        timeout: int = 10,
+        timeout: int = 15,
         status_retries: int = 3,
         retry_delay: float = 2.0,
     ) -> None:
