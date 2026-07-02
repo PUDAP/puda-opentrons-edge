@@ -218,82 +218,11 @@ If this fails, check that you are running the command from the main `opentrons` 
 uv sync
 ```
 
-### 2.5 Add custom labware
+### 2.5 Start the Opentrons Edge service
 
-Use this section when your protocol needs labware that is not one of the standard Opentrons labware types.
+After you edit the Edge configuration and confirm the driver is installed, start the Opentrons Edge service.
 
-Custom labware definitions are JSON files. Add the definition file to this package so the Opentrons driver can discover it.
-
-#### Add the labware definition file
-
-Place the custom labware JSON file in:
-
-```text
-opentrons/labware/
-```
-
-Example:
-
-```text
-opentrons/labware/my_custom_plate_1.json
-```
-
-The file must include `parameters.loadName`. The driver uses this value as the labware type name.
-
-Example JSON fields to check:
-
-```json
-{
-  "namespace": "custom",
-  "version": 1,
-  "metadata": {
-    "displayName": "My Custom Plate"
-  },
-  "parameters": {
-    "loadName": "my_custom_plate_1"
-  }
-}
-```
-
-#### Confirm the labware is discovered
-
-From the main `opentrons` folder, run:
-
-```bash
-uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
-```
-
-Confirm your `parameters.loadName` value appears in the printed list.
-
-#### Use the custom labware in a protocol
-
-Use the `parameters.loadName` value as `labware_type` when loading labware.
-
-Example:
-
-```python
-ProtocolCommand(command_type="load_labware", params={
-    "name": "custom_plate",
-    "labware_type": "my_custom_plate_1",
-    "location": "3",
-})
-```
-
-When a custom labware type is found in `opentrons/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
-
-After adding or changing a labware JSON file, restart the Opentrons Edge service so it reloads the labware list.
-
-Custom labware is embedded into generated protocols with Opentrons `load_labware_from_definition()`, so a separate labware upload step is not required.
-
----
-
-## 3. Start Required Services
-
-Confirm NATS is already running or reachable, then start Opentrons Edge.
-
-### 3.1 Start the Opentrons Edge service
-
-Open a second terminal window. From the main `opentrons` folder, run:
+Confirm NATS is already running or reachable. Then open a second terminal window. From the main `opentrons` folder, run:
 
 ```bash
 uv run opentrons-edge
@@ -310,6 +239,48 @@ Edge Service Ready
 Keep this terminal open while using PUDA.
 
 > **Important:** Run only one Edge service for the same robot at a time. Duplicate processes cause confusing command errors.
+
+## 3. Camera setup and usage
+
+### 3.1 Opentrons Integrated camera
+
+The OT-2 integrated camera is accessed through the robot's HTTP API. The driver calls:
+
+```text
+POST /camera/picture
+```
+
+This captures a still JPEG image from the robot. It does not require an external USB camera, RTSP stream, MediaMTX, or ffmpeg.
+
+The driver method is:
+
+```python
+Driver.capture_robot_image(filename=None, captures_folder="captures")
+```
+
+Behavior:
+
+- If `filename` is omitted, the driver creates a timestamped name such as `robot_capture_20260702_153000.jpg`.
+- If `filename` is relative, it is saved inside the `captures_folder`.
+- If `filename` has no extension, `.jpg` is added automatically.
+- The method creates the output folder if needed.
+- The returned result includes the saved image path, `saved`, `image_format`, `width`, `height`, `robot_ip`, and `image_base64`.
+
+From the main `opentrons` folder, you can test the integrated camera with:
+
+```bash
+uv run python -c "from opentrons.driver import Driver; robot = Driver(robot_ip='<robot-ip-address>'); print(robot.capture_robot_image())"
+```
+
+Replace `<robot-ip-address>` with the IP address from `OPENTRONS_IP` in `.env`.
+
+By default, the image is saved under:
+
+```text
+captures/
+```
+
+Use the integrated camera for quick still-image checks such as deck inspection, confirming labware placement, or capturing evidence before and after a run. The integrated camera does not support livestreaming. If you want a livestream, use an external camera and follow the livestream setup in section 3.2 below.
 
 ### 3.2 Start livestream cameras
 
@@ -349,7 +320,76 @@ Stream endpoints:
 
 ---
 
-## 4. Create or Run an Opentrons Protocol using PUDA
+## 4. Add Custom Labware
+
+Use this section when your protocol needs labware that is not one of the standard Opentrons labware types.
+
+Custom labware definitions are JSON files. Add the definition file to this package so the Opentrons driver can discover it.
+
+### 4.1 Add the labware definition file
+
+Place the custom labware JSON file in:
+
+```text
+opentrons/labware/
+```
+
+Example:
+
+```text
+opentrons/labware/my_custom_plate_1.json
+```
+
+The file must include `parameters.loadName`. The driver uses this value as the labware type name.
+
+Example JSON fields to check:
+
+```json
+{
+  "namespace": "custom",
+  "version": 1,
+  "metadata": {
+    "displayName": "My Custom Plate"
+  },
+  "parameters": {
+    "loadName": "my_custom_plate_1"
+  }
+}
+```
+
+### 4.2 Confirm the labware is discovered
+
+From the main `opentrons` folder, run:
+
+```bash
+uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
+```
+
+Confirm your `parameters.loadName` value appears in the printed list.
+
+### 4.3 Use the custom labware in a protocol
+
+Use the `parameters.loadName` value as `labware_type` when loading labware.
+
+Example:
+
+```python
+ProtocolCommand(command_type="load_labware", params={
+    "name": "custom_plate",
+    "labware_type": "my_custom_plate_1",
+    "location": "3",
+})
+```
+
+When a custom labware type is found in `opentrons/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
+
+After adding or changing a labware JSON file, restart the Opentrons Edge service so it reloads the labware list.
+
+Custom labware is embedded into generated protocols with Opentrons `load_labware_from_definition()`, so a separate labware upload step is not required.
+
+---
+
+## 5. Create or Run an Opentrons Protocol using PUDA
 
 There are two common ways to create and run an Opentrons protocol:
 
@@ -362,19 +402,19 @@ Use this option when your lab allows an agentic IDE to help create protocol file
 
 An agentic IDE is a code editor with an AI assistant that can read the project folder, create files, edit protocols, and run commands when you approve them. Examples include Cursor, VS Code with an agent, or another lab-approved AI coding environment.
 
-#### 4.1 Open the correct project folder
+#### 5.1 Open the correct project folder
 
 Open the main folder that contains both the PUDA project and the Opentrons package, or open the specific PUDA project folder if your lab keeps them separate.
 
 Before asking the agent to create anything, confirm:
 
-- [ ] The PUDA project folder is visible.
-- [ ] The `protocols/` folder is visible.
-- [ ] The Opentrons package folder is visible, if needed.
-- [ ] NATS is running or reachable.
-- [ ] The Opentrons Edge service is running and shows "Ready".
+- The PUDA project folder is visible.
+- The `protocols/` folder is visible.
+- The Opentrons package folder is visible, if needed.
+- NATS is running or reachable.
+- The Opentrons Edge service is running and shows "Ready".
 
-#### 4.2 Ask the agent to create the protocol
+#### 5.2 Ask the agent to create the protocol
 
 Use plain language, but include exact lab details. A good request includes:
 
@@ -392,33 +432,32 @@ Example prompt:
 ```text
 Create an Opentrons OT-2 protocol for PUDA.
 
-Use a P300 single-channel pipette on the right mount.
-Use an Opentrons 300 uL tip rack in slot 11.
-Use a 12-channel reservoir in slot 2 as the water source.
-Use a 96-well plate in slot 3 as the destination.
-Transfer 100 uL of water from reservoir well A1 to plate wells A1 through A6.
-Save the protocol in the protocols folder as water_transfer_a1_to_a6.py.
+Use a P300 single gen2 pipette on the right mount.
+Use a P300 uL tip rack in slot 11.
+Source is placed in slot 2 using a Corning 96-well plate.
+The mixing plate is placed in slot 3 using a Corning 96-well plate.
+Transfer 300 uL of water from source well D6 to mixing plate wells A1 through A6.
 Do not run the protocol until I approve it.
 ```
 
-#### 4.3 Review the generated protocol
+#### 5.3 Review the generated protocol
 
 Before allowing the agent to run anything, ask it to summarize the protocol in plain language.
 
 Check:
 
-- [ ] Correct robot type.
-- [ ] Correct pipette and mount.
-- [ ] Correct labware names.
-- [ ] Correct deck slots.
-- [ ] Correct source and destination wells.
-- [ ] Correct liquid volumes.
-- [ ] No unexpected movements or extra steps.
-- [ ] The file is saved in the expected `protocols/` folder.
+- Correct robot type.
+- Correct pipette and mount.
+- Correct labware names.
+- Correct deck slots.
+- Correct source and destination wells.
+- Correct liquid volumes.
+- No unexpected movements or extra steps.
+- The file is saved in the expected `protocols/` folder.
 
 Ask the agent to fix any mistake before continuing.
 
-#### 4.4 Execute the protocol
+#### 5.4 Execute the protocol
 
 After review, ask the agent to run the protocol using your lab's approved PUDA command or workflow.
 
@@ -443,7 +482,7 @@ The agent should show the command, wait for your approval if required, and then 
 
 Use this option when your lab runs PUDA through a chat or messaging interface instead of a local agentic IDE.
 
-#### 4.5 Start from the messaging interface
+#### 5.5 Start from the messaging interface
 
 Open the approved messaging platform and select the PUDA or Opentrons agent for your lab.
 
@@ -455,37 +494,81 @@ Use the existing PUDA and NATS configuration.
 Do not run any robot movement until I approve it.
 ```
 
-#### 4.6 Describe the protocol
+#### 5.6 Describe the protocol
 
 Send the protocol request in natural language with exact lab details.
+
+When sending the prompt in chat, mention the bot so it receives and responds to the request.
 
 Example prompt:
 
 ```text
 Create an Opentrons OT-2 protocol for PUDA.
 
-Use a P300 single-channel pipette on the right mount.
-Use an Opentrons 300 uL tip rack in slot 11.
-Use a 12-channel reservoir in slot 2 as the water source.
-Use a 96-well plate in slot 3 as the destination.
-Transfer 100 uL of water from reservoir well A1 to plate wells A1 through A6.
-Use the opentrons machine.
+Use a P300 single gen2 pipette on the right mount.
+Use a P300 uL tip rack in slot 11.
+Source is placed in slot 2 using a Corning 96-well plate.
+The mixing plate is placed in slot 3 using a Corning 96-well plate.
+Transfer 300 uL of water from source well D6 to mixing plate wells A1 through A6.
 Do not run the protocol until I approve it.
 ```
 
-#### 4.7 Review and approve execution
+#### 5.7 Review and approve execution
 
-Ask the messaging agent to summarize:
+Agent will provide a protocol summary to the user after the protocol is created.
 
-- The deck layout.
-- The pipette and mount.
-- The source and destination wells.
-- The transfer volume.
-- The command or workflow it will use to run the protocol through PUDA.
+Example summary:
 
-Only approve execution after the summary matches the physical robot deck.
+```text
+Created and validated the new PUDA Opentrons protocol. I did not run it. Opentrons is still idle.
 
-#### 4.8 Watch the first run
+Protocol
+
+Field            Value
+Protocol ID      61262efb-0a5e-49da-915a-de15333ba001
+File             /home/opentron/puda-opentrons-water-transfer/protocols/61262efb-0a5e-49da-915a-de15333ba001.json
+PUDA validation  passed
+project.md       updated
+Run status       not run
+SHA256           c34f74a79a431bd4ec791489a68b9441b4f1887b47f4932823ee6d6093b3455c
+
+Transfer setup
+
+Item               Setting
+Pipette            p300_single_gen2
+Mount              right
+Tip rack           opentrons_96_tiprack_300ul in slot 11
+Source plate       corning_96_wellplate_360ul_flat in slot 2
+Mixing plate       corning_96_wellplate_360ul_flat in slot 3
+Source well        D6
+Destination wells  A1-A6
+Volume             300 uL per destination well
+Tips               fresh tip for each destination well
+End state          homes robot; no tip attached
+
+Validation/static checks:
+
+6x pick_up_tip
+6x aspirate(300, source D6)
+6x dispense(300, destination)
+6x blow_out
+6x drop_tip
+no transfer(), distribute(), mix(), or air_gap
+uses requirements = {"robotType": "OT-2", "apiLevel": "2.15"} only, avoiding duplicate apiLevel upload issues
+
+When you approve, I can run:
+
+cd /home/opentron/puda-opentrons-water-transfer
+puda protocol run -f protocols/61262efb-0a5e-49da-915a-de15333ba001.json
+```
+
+After you confirm the setup matches the physical robot deck, mention the bot and send:
+
+```text
+approve and run
+```
+
+#### 5.8 Watch the first run
 
 During the first run:
 
@@ -498,13 +581,13 @@ During the first run:
 
 ---
 
-## 5. Troubleshooting Opentrons Setup
+## 6. Troubleshooting Opentrons Setup
 
 For other hardware troubleshooting, refer to the official Opentrons OT-2 troubleshooting website:
 
 [https://support.opentrons.com/s/ot-2/troubleshooting](https://support.opentrons.com/s/ot-2/troubleshooting)
 
-### 5.1 Robot does not appear in the Opentrons App
+### 6.1 Robot does not appear in the Opentrons App
 
 Check:
 
@@ -516,7 +599,7 @@ Check:
 
 If the robot IP address changed, update `OPENTRONS_IP` in `.env`, then restart the Opentrons Edge service.
 
-### 5.2 Custom labware does not appear
+### 6.2 Custom labware does not appear
 
 Check:
 
@@ -532,7 +615,7 @@ Confirm discovery:
 uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
 ```
 
-### 5.3 Protocol starts but robot movement is wrong
+### 6.3 Protocol starts but robot movement is wrong
 
 Stop the run and check:
 
@@ -545,7 +628,7 @@ Stop the run and check:
 
 Do not continue until the protocol has been reviewed against the physical deck.
 
-### 5.4 Commands fail or behave inconsistently
+### 6.4 Commands fail or behave inconsistently
 
 Possible cause: more than one Opentrons Edge service is running for the same robot.
 
