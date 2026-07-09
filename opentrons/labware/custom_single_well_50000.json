@@ -1,0 +1,54 @@
+{
+  "ordering": [["A1"]],
+  "brand": {
+    "brand": "Custom",
+    "brandId": ["custom_single_well_50ml"]
+  },
+  "metadata": {
+    "displayName": "Custom Single Well 50 mL Container",
+    "displayCategory": "wellPlate",
+    "displayVolumeUnits": "µL",
+    "tags": []
+  },
+  "dimensions": {
+    "xDimension": 127.76,
+    "yDimension": 85.48,
+    "zDimension": 100
+  },
+  "wells": {
+    "A1": {
+      "depth": 90,
+      "totalLiquidVolume": 50000,
+      "shape": "circular",
+      "diameter": 28,
+      "x": 63.88,
+      "y": 42.74,
+      "z": 5
+    }
+  },
+  "groups": [
+    {
+      "metadata": {
+        "wellBottomShape": "flat"
+      },
+      "wells": ["A1"]
+    }
+  ],
+  "parameters": {
+    "format": "irregular",
+    "quirks": [],
+    "isTiprack": false,
+    "isMagneticModuleCompatible": false,
+    "loadName": "custom_single_well_50000"
+  },
+  "namespace": "custom_beta",
+  "version": 1,
+  "schemaVersion": 2,
+  "apiLevel": "2.23",
+  "cornerOffsetFromSlot": {
+    "x": 0,
+    "y": 0,
+    "z": 0
+  }
+}
+
