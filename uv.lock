@@ -84,7 +84,7 @@ name = "opentrons-edge"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
-    { name = "puda-comms" },
+    { name = "puda" },
     { name = "pydantic" },
     { name = "pydantic-settings" },
     { name = "python-dotenv" },
@@ -93,7 +93,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "puda-comms", specifier = "==0.0.10" },
+    { name = "puda", specifier = "==0.0.16" },
     { name = "pydantic", specifier = ">=2.12.5" },
     { name = "pydantic-settings", specifier = ">=2.12.0" },
     { name = "python-dotenv", specifier = ">=1.2.1" },
@@ -101,16 +101,16 @@ requires-dist = [
 ]
 
 [[package]]
-name = "puda-comms"
-version = "0.0.10"
+name = "puda"
+version = "0.0.16"
 source = { registry = "https://pypi.org/simple" }
 dependencies = [
     { name = "nats-py" },
     { name = "pydantic" },
 ]
-sdist = { url = "https://files.pythonhosted.org/packages/1f/28/88fe2c6b83990bacd9f01c1676a016dc62f9034c8a588e91fe750536ad8b/puda_comms-0.0.10.tar.gz", hash = "sha256:22f16d091dc76b6976446ca10aa7a05c82a819b8a23c8e1f01ebc19f817ad6c0", size = 26925, upload-time = "2026-03-12T06:31:17.283Z" }
+sdist = { url = "https://files.pythonhosted.org/packages/6f/a2/b2074cad7dee37c6faad324c82a9fd09fb87a96c0b5c9e69250efd0f9ddd/puda-0.0.16.tar.gz", hash = "sha256:fac59addb7bda9fd53041f5e96cd2e47cd119d9c0097684a9735679dc2bc9821", size = 31773, upload-time = "2026-07-09T05:25:33.927Z" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/2c/8d/9f219b0e2acf60ce8968e6f029ad676718696646edbd8eaa529019bc03a4/puda_comms-0.0.10-py3-none-any.whl", hash = "sha256:6b20a6f614f7f9b5d8318b89c041fbd23ea70ccde9fcb304f8059d00e06da9be", size = 31160, upload-time = "2026-03-12T06:31:16.006Z" },
+    { url = "https://files.pythonhosted.org/packages/03/41/2779251fb46687d21f0d0804bcc968c02d67535f69f88903062225b1ae79/puda-0.0.16-py3-none-any.whl", hash = "sha256:ba6046a78effb90b04af40e6e299ae35a29e12264104830edd4c5d198b6e3578", size = 36705, upload-time = "2026-07-09T05:25:35.226Z" },
 ]
 
 [[package]]
