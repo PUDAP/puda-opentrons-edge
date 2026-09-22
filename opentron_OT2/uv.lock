@@ -80,7 +80,7 @@ wheels = [
 ]
 
 [[package]]
-name = "opentrons-edge"
+name = "opentrons-ot2-edge"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [

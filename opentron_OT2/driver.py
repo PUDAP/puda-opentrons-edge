@@ -1,19 +1,19 @@
 """High-level Opentrons OT-2 machine interface.
 
-The :class:`Driver` class is the primary entry-point for this package.  It
+The :class:`opentron_OT2` class is the primary entry-point for this package.  It
 exposes a clean, intent-oriented API that wires together the underlying
 controllers for protocol execution, run control, labware management, and
 resource discovery.
 
 Example::
 
-    robot = Driver(robot_ip="10.0.239.103")
+    robot = opentron_OT2(robot_ip="10.0.239.103")
     robot.startup()
 
     if not robot.is_connected():
         raise RuntimeError("Robot is unreachable")
 
-    from opentrons.protocol import Protocol, ProtocolCommand
+    from protocol import Protocol, ProtocolCommand
 
     protocol = Protocol(
         protocol_name="Simple Transfer",
@@ -40,7 +40,7 @@ from typing import Any, Optional, Union
 
 import requests
 
-from opentrons.protocol import (
+from protocol import (
     apply_tip_tracking,
     commit_tip_advances,
     preprocess_protocol_code,
@@ -72,7 +72,7 @@ _JPEG_SOF_MARKERS = {
 }
 
 
-class Driver:
+class opentron_OT2:
     """Opentrons OT-2 robot driver.
 
     Args:

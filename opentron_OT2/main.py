@@ -11,7 +11,7 @@ import time
 from pathlib import Path
 from pydantic_settings import BaseSettings, SettingsConfigDict
 from puda_comms import EdgeNatsClient, EdgeRunner
-from opentrons.driver import Driver
+from driver import opentron_OT2
 
 
 # Configure logging
@@ -58,7 +58,7 @@ async def main():
     )
 
     logger.info("Initializing machine driver")
-    driver = Driver(
+    driver = opentron_OT2(
         robot_ip=config.opentrons_ip,
     )
     driver.startup()

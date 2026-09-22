@@ -1,7 +1,7 @@
 [project]
-name = "opentrons-edge"
+name = "opentrons-flex-edge"
 version = "0.1.0"
-description = "PUDA edge service and high-level driver for the Opentrons OT-2"
+description = "PUDA edge service and high-level driver for the Opentrons Flex"
 readme = "README.md"
 requires-python = ">=3.14"
 dependencies = [
@@ -13,18 +13,14 @@ dependencies = [
 ]
 
 [project.scripts]
-opentrons-edge = "main:run"
+opentrons-flex-edge = "main:run"
 
 [build-system]
 requires = ["setuptools>=69"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools]
-py-modules = ["main"]
-
-[tool.setuptools.packages.find]
-where = ["."]
-include = ["opentrons*"]
+py-modules = ["main", "driver", "protocol"]
 
 [tool.setuptools.package-data]
-opentrons = ["labware/*.json"]
+"*" = ["labware/*.json"]

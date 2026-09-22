@@ -1,4 +1,4 @@
-# User Guide: Opentrons Setup for PUDA
+# User Guide: Opentrons Flex Setup for PUDA
 
 > **Audience:** Lab users, technicians, and project owners who want to set up an Opentrons robot for PUDA.
 >
@@ -36,7 +36,7 @@ The Opentrons App is the official desktop application for connecting to and mana
 
 Follow the official Opentrons first-run setup guide for connecting and preparing the robot:
 
-[https://docs.opentrons.com/ot-2/installation/first-run/](https://docs.opentrons.com/ot-2/installation/first-run/)
+[https://docs.opentrons.com/flex/installation-and-relocation/first-run/](https://docs.opentrons.com/flex/installation-and-relocation/first-run/)
 
 1. Connect your Opentrons robot by USB, Wi-Fi, or Ethernet.
 2. In the Opentrons App, look for your robot in the device list.
@@ -49,7 +49,7 @@ Use the Opentrons App to complete robot calibration before running PUDA-controll
 
 Follow the official Opentrons robot calibration guide:
 
-[https://docs.opentrons.com/ot-2/calibration/robot-calibration/](https://docs.opentrons.com/ot-2/calibration/robot-calibration/)
+[https://docs.opentrons.com/flex/installation-and-relocation/instrument-installation-and-calibration/](https://docs.opentrons.com/flex/installation-and-relocation/instrument-installation-and-calibration/)
 
 Complete the calibration steps required for your robot, pipettes, tip racks, and labware before starting the Opentrons Edge service.
 
@@ -118,18 +118,15 @@ Your PUDA administrator may provide an existing Opentrons folder, ZIP file, or r
 Expected repository structure:
 
 ```text
-opentrons/
+opentron_flex/
 |-- pyproject.toml
 |-- uv.lock
 |-- main.py
+|-- driver.py
+|-- protocol.py
 |-- .env.example
-|-- EDGE.md
-|-- DRIVER.md
-`-- opentrons/
-    |-- __init__.py
-    |-- driver.py
-    |-- protocol.py
-    `-- labware/
+|-- start_edge.bat
+`-- labware/
 ```
 
 If your organization has a GitHub repository, download it as a ZIP file or clone it if Git is available.
@@ -153,7 +150,7 @@ Open `.env` in a text editor.
 Template:
 
 ```env
-MACHINE_ID=opentrons
+MACHINE_ID=opentrons-flex
 OPENTRONS_IP=<robot-ip-address>
 NATS_SERVERS=nats://localhost:4222
 ```
@@ -161,7 +158,7 @@ NATS_SERVERS=nats://localhost:4222
 Example:
 
 ```env
-MACHINE_ID=opentrons
+MACHINE_ID=opentrons-flex
 OPENTRONS_IP=192.168.1.25
 NATS_SERVERS=nats://localhost:4222
 ```
@@ -186,10 +183,10 @@ From the main `opentrons` folder, run:
 uv sync
 ```
 
-This installs the root project and bundled driver:
+This installs the Flex edge project and bundled driver:
 
-- `opentrons-edge`
-- `opentrons`
+- `opentrons-flex-edge`
+- `driver` / `protocol`
 
 You do not need to install the Opentrons robot driver manually. It is part of this project and is installed automatically by `uv sync`.
 
@@ -203,7 +200,7 @@ Verification:
 After running `uv sync`, verify the driver:
 
 ```bash
-uv run python -c "from opentrons.driver import Driver; print('Opentrons driver ready')"
+uv run python -c "from driver import opentron_flex; print('Opentrons driver ready')"
 ```
 
 Expected output:
@@ -225,13 +222,13 @@ After you edit the Edge configuration and confirm the driver is installed, start
 Confirm NATS is already running or reachable. Then open a second terminal window. From the main `opentrons` folder, run:
 
 ```bash
-uv run opentrons-edge
+uv run opentrons-flex-edge
 ```
 
 Expected output includes:
 
 ```text
-OT2 machine initialized successfully
+Flex machine initialized successfully
 NATS client initialized successfully
 Edge Service Ready
 ```
@@ -244,7 +241,7 @@ Keep this terminal open while using PUDA.
 
 ### 3.1 Opentrons Integrated camera
 
-The OT-2 integrated camera is accessed through the robot's HTTP API. The driver calls:
+The Flex camera is accessed through the robot's HTTP API. The driver calls:
 
 ```text
 POST /camera/picture
@@ -255,7 +252,7 @@ This captures a still JPEG image from the robot. It does not require an external
 The driver method is:
 
 ```python
-Driver.capture_robot_image(filename=None, captures_folder="captures")
+opentron_flex.capture_robot_image(filename=None, captures_folder="captures")
 ```
 
 Behavior:
@@ -269,7 +266,7 @@ Behavior:
 From the main `opentrons` folder, you can test the integrated camera with:
 
 ```bash
-uv run python -c "from opentrons.driver import Driver; robot = Driver(robot_ip='<robot-ip-address>'); print(robot.capture_robot_image())"
+uv run python -c "from driver import opentron_flex; robot = opentron_flex(robot_ip='<robot-ip-address>'); print(robot.capture_robot_image())"
 ```
 
 Replace `<robot-ip-address>` with the IP address from `OPENTRONS_IP` in `.env`.
@@ -331,13 +328,13 @@ Custom labware definitions are JSON files. Add the definition file to this packa
 Place the custom labware JSON file in:
 
 ```text
-opentrons/labware/
+labware/
 ```
 
 Example:
 
 ```text
-opentrons/labware/my_custom_plate_1.json
+labware/my_custom_plate_1.json
 ```
 
 The file must include `parameters.loadName`. The driver uses this value as the labware type name.
@@ -362,7 +359,7 @@ Example JSON fields to check:
 From the main `opentrons` folder, run:
 
 ```bash
-uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
+uv run python -c "from protocol import get_labware_types; print(get_labware_types())"
 ```
 
 Confirm your `parameters.loadName` value appears in the printed list.
@@ -381,7 +378,7 @@ ProtocolCommand(command_type="load_labware", params={
 })
 ```
 
-When a custom labware type is found in `opentrons/labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
+When a custom labware type is found in `labware/`, the protocol builder generates an Opentrons `load_labware_from_definition()` call automatically.
 
 After adding or changing a labware JSON file, restart the Opentrons Edge service so it reloads the labware list.
 
@@ -430,7 +427,7 @@ Use plain language, but include exact lab details. A good request includes:
 Example prompt:
 
 ```text
-Create an Opentrons OT-2 protocol for PUDA.
+Create an Opentrons Flex protocol for PUDA.
 
 Use a P300 single gen2 pipette on the right mount.
 Use a P300 uL tip rack in slot 11.
@@ -503,7 +500,7 @@ When sending the prompt in chat, mention the bot so it receives and responds to 
 Example prompt:
 
 ```text
-Create an Opentrons OT-2 protocol for PUDA.
+Create an Opentrons Flex protocol for PUDA.
 
 Use a P300 single gen2 pipette on the right mount.
 Use a P300 uL tip rack in slot 11.
@@ -554,7 +551,7 @@ Validation/static checks:
 6x blow_out
 6x drop_tip
 no transfer(), distribute(), mix(), or air_gap
-uses requirements = {"robotType": "OT-2", "apiLevel": "2.15"} only, avoiding duplicate apiLevel upload issues
+uses requirements = {"robotType": "Flex", "apiLevel": "2.29"} only, avoiding duplicate apiLevel upload issues
 
 When you approve, I can run:
 
@@ -583,9 +580,9 @@ During the first run:
 
 ## 6. Troubleshooting Opentrons Setup
 
-For other hardware troubleshooting, refer to the official Opentrons OT-2 troubleshooting website:
+For other hardware troubleshooting, refer to the official Opentrons Flex documentation:
 
-[https://support.opentrons.com/s/ot-2/troubleshooting](https://support.opentrons.com/s/ot-2/troubleshooting)
+[https://docs.opentrons.com/flex/](https://docs.opentrons.com/flex/)
 
 ### 6.1 Robot does not appear in the Opentrons App
 
@@ -603,7 +600,7 @@ If the robot IP address changed, update `OPENTRONS_IP` in `.env`, then restart t
 
 Check:
 
-- The JSON file is in `opentrons/labware/`.
+- The JSON file is in `labware/`.
 - The file ends in `.json`.
 - The JSON includes `parameters.loadName`.
 - The `loadName` is the same value used as `labware_type` in the protocol.
@@ -612,7 +609,7 @@ Check:
 Confirm discovery:
 
 ```bash
-uv run python -c "from opentrons.protocol import get_labware_types; print(get_labware_types())"
+uv run python -c "from protocol import get_labware_types; print(get_labware_types())"
 ```
 
 ### 6.3 Protocol starts but robot movement is wrong
